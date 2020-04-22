@@ -1,0 +1,10 @@
+warehousepf\AbstractEvent.class
+warehousepf\Application.class
+warehousepf\config\kafka\KafkaProcessor.class
+warehousepf\Obsolete.class
+warehousepf\Warehouse.class
+warehousepf\InStock.class
+warehousepf\PolicyHandler.class
+warehousepf\Shipped.class
+warehousepf\WarehouseController.class
+warehousepf\WarehouseRepository.class
