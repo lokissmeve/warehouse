@@ -1,8 +1,16 @@
 package warehousepf;
 
 import javax.persistence.*;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.kafka.common.network.Send;
 import org.springframework.beans.BeanUtils;
-import java.util.List;
+import org.springframework.cloud.stream.messaging.Processor;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageHeaders;
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.util.MimeTypeUtils;
 
 @Entity
 @Table(name="Warehouse_table")
@@ -20,18 +28,44 @@ public class Warehouse {
         BeanUtils.copyProperties(this, inStock);
         inStock.publish();
 
-        Obsolete obsolete = new Obsolete();
-        BeanUtils.copyProperties(this, obsolete);
-        obsolete.publish();
+        SendMessage(inStock);
+    }
 
+    @PostUpdate
+    public void onPostUpdate(){
+        Shipped shipped = new Shipped();
+        BeanUtils.copyProperties(this, shipped);
+        shipped.publish();
 
+        SendMessage(shipped);
     }
 
     @PostRemove
     public void onPostRemove(){
-        Shipped shipped = new Shipped();
-        BeanUtils.copyProperties(this, shipped);
-        shipped.publish();
+        Obsolete obsolete = new Obsolete();
+        BeanUtils.copyProperties(this, obsolete);
+        obsolete.publish();
+
+        SendMessage(obsolete);
+    }
+
+    public void SendMessage(Object object)
+    {
+        ObjectMapper objectMapper = new ObjectMapper();
+        String json = null;
+
+        try {
+            json = objectMapper.writeValueAsString(object);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("JSON format exception", e);
+        }
+
+        Processor processor = Application.applicationContext.getBean(Processor.class);
+        MessageChannel outputChannel = processor.output();
+        outputChannel.send(MessageBuilder
+                .withPayload(json)
+                .setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.APPLICATION_JSON)
+                .build());
     }
 
     public Long getId() {
@@ -55,8 +89,4 @@ public class Warehouse {
     public void setQty(Integer qty) {
         this.qty = qty;
     }
-
-
-
-
 }
